@@ -1,49 +1,82 @@
 <?php
 session_start();
 include 'db.php';
+include 'syncToGoogle.php';
+
 if (!isset($_SESSION['username'])) {
     header("Location: login.php");
     exit();
 }
 
-// Handle Add Trip
+// ✅ ADD TRIP
 if (isset($_POST['add_trip'])) {
- $trip_complete = $_POST['trip_complete'] ?? 0;
- // ✅ checkbox status
+    $trip_complete = isset($_POST['trip_complete']) ? 1 : 0;
 
     $sql = "INSERT INTO rented_trips 
-            (invoice_no, lr_no, trip_date, vehicle_no, from_place, to_place, port_reach_time, start_time, company_gate_reach, company_left_time, consignor, consignee, truck_owner_name, owner_number, truck_driver_name, truck_driver_mob, loading_weight, unloading_weight, short_weight, product_name, trip_complete)
-            VALUES (
-                '{$_POST['invoice_no']}',
-                '{$_POST['lr_no']}',
-                '{$_POST['trip_date']}',
-                '{$_POST['vehicle_no']}',
-                '{$_POST['from_place']}',
-                '{$_POST['to_place']}',
-                '{$_POST['port_reach_time']}',
-                '{$_POST['start_time']}',
-                '{$_POST['company_gate_reach']}',
-                '{$_POST['company_left_time']}',
-                '{$_POST['consignor']}',
-                '{$_POST['consignee']}',
-                '{$_POST['truck_owner_name']}',
-                '{$_POST['owner_number']}',
-                '{$_POST['truck_driver_name']}',
-                '{$_POST['truck_driver_mob']}',
-                '{$_POST['loading_weight']}',
-                '{$_POST['unloading_weight']}',
-                '{$_POST['short_weight']}',
-                '{$_POST['product_name']}',
-                '$trip_complete'  -- ✅ new column
-            )";
+        (invoice_no, lr_no, trip_date, vehicle_no, from_place, to_place, port_reach_time, start_time, company_gate_reach, company_left_time, consignor, consignee, truck_owner_name, owner_number, truck_driver_name, truck_driver_mob, loading_weight, unloading_weight, short_weight, product_name, trip_complete)
+        VALUES (
+            '{$_POST['invoice_no']}',
+            '{$_POST['lr_no']}',
+            '{$_POST['trip_date']}',
+            '{$_POST['vehicle_no']}',
+            '{$_POST['from_place']}',
+            '{$_POST['to_place']}',
+            '{$_POST['port_reach_time']}',
+            '{$_POST['start_time']}',
+            '{$_POST['company_gate_reach']}',
+            '{$_POST['company_left_time']}',
+            '{$_POST['consignor']}',
+            '{$_POST['consignee']}',
+            '{$_POST['truck_owner_name']}',
+            '{$_POST['owner_number']}',
+            '{$_POST['truck_driver_name']}',
+            '{$_POST['truck_driver_mob']}',
+            '{$_POST['loading_weight']}',
+            '{$_POST['unloading_weight']}',
+            '{$_POST['short_weight']}',
+            '{$_POST['product_name']}',
+            '$trip_complete'
+        )";
+    
     $conn->query($sql);
+    $inserted_id = $conn->insert_id;
+
+    // ✅ Sync to Google Sheet
+    $syncData = [
+        "action" => "add",
+        "id" => $inserted_id,
+        "invoice_no" => $_POST['invoice_no'],
+        "lr_no" => $_POST['lr_no'],
+        "trip_date" => $_POST['trip_date'],
+        "vehicle_no" => $_POST['vehicle_no'],
+        "from_place" => $_POST['from_place'],
+        "to_place" => $_POST['to_place'],
+        "port_reach_time" => $_POST['port_reach_time'],
+        "start_time" => $_POST['start_time'],
+        "company_gate_reach" => $_POST['company_gate_reach'],
+        "company_left_time" => $_POST['company_left_time'],
+        "consignor" => $_POST['consignor'],
+        "consignee" => $_POST['consignee'],
+        "truck_owner_name" => $_POST['truck_owner_name'],
+        "owner_number" => $_POST['owner_number'],
+        "truck_driver_name" => $_POST['truck_driver_name'],
+        "truck_driver_mob" => $_POST['truck_driver_mob'],
+        "loading_weight" => $_POST['loading_weight'],
+        "unloading_weight" => $_POST['unloading_weight'],
+        "short_weight" => $_POST['short_weight'],
+        "product_name" => $_POST['product_name'],
+        "trip_complete" => $trip_complete
+    ];
+    syncToGoogleSheet($syncData);
+
     header("Location: rented_trip.php");
     exit();
 }
-// Handle Update Trip
+
+// ✅ UPDATE TRIP
 if (isset($_POST['update_trip'])) {
     $trip_complete = isset($_POST['trip_complete']) ? 1 : 0;
-    $id = $_POST['id']; // hidden field
+    $id = $_POST['id'];
 
     $sql = "UPDATE rented_trips SET
         invoice_no='{$_POST['invoice_no']}',
@@ -68,30 +101,68 @@ if (isset($_POST['update_trip'])) {
         product_name='{$_POST['product_name']}',
         trip_complete='$trip_complete'
         WHERE id='$id'";
+    
     $conn->query($sql);
+
+    // ✅ Sync update
+    $syncData = [
+        "action" => "update",
+        "id" => $_POST['id'],
+        "invoice_no" => $_POST['invoice_no'],
+        "lr_no" => $_POST['lr_no'],
+        "trip_date" => $_POST['trip_date'],
+        "vehicle_no" => $_POST['vehicle_no'],
+        "from_place" => $_POST['from_place'],
+        "to_place" => $_POST['to_place'],
+        "port_reach_time" => $_POST['port_reach_time'],
+        "start_time" => $_POST['start_time'],
+        "company_gate_reach" => $_POST['company_gate_reach'],
+        "company_left_time" => $_POST['company_left_time'],
+        "consignor" => $_POST['consignor'],
+        "consignee" => $_POST['consignee'],
+        "truck_owner_name" => $_POST['truck_owner_name'],
+        "owner_number" => $_POST['owner_number'],
+        "truck_driver_name" => $_POST['truck_driver_name'],
+        "truck_driver_mob" => $_POST['truck_driver_mob'],
+        "loading_weight" => $_POST['loading_weight'],
+        "unloading_weight" => $_POST['unloading_weight'],
+        "short_weight" => $_POST['short_weight'],
+        "product_name" => $_POST['product_name'],
+        "trip_complete" => $trip_complete
+    ];
+    syncToGoogleSheet($syncData);
+
     header("Location: rented_trip.php");
     exit();
 }
 
-// Handle Delete
+// ✅ DELETE
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $conn->query("DELETE FROM rented_trips WHERE id=$id");
+    syncToGoogleSheet(["action" => "delete", "id" => $id]);
     header("Location: rented_trip.php");
     exit();
 }
 
-// ✅ Handle Toggle Trip Completion
+// ✅ TOGGLE completion
 if (isset($_GET['toggle'])) {
     $id = $_GET['toggle'];
     $conn->query("UPDATE rented_trips SET trip_complete = 1 - trip_complete WHERE id=$id");
+
+    // Get latest row to sync update
+    $row = $conn->query("SELECT * FROM rented_trips WHERE id=$id")->fetch_assoc();
+    $row["action"] = "update";
+    syncToGoogleSheet($row);
+
     header("Location: rented_trip.php");
     exit();
 }
 
-// Fetch records
+// ✅ Fetch records
 $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
 ?>
+
 
 
 <!DOCTYPE html>
@@ -201,6 +272,20 @@ $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
             cursor: pointer;
             color: red;
         }
+        .sheet-btn {
+    background: #28a745;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+}
+.sheet-btn:hover {
+    background: #1e7e34;
+}
+
     </style>
 </head>
 <body>
@@ -214,7 +299,9 @@ $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
 
 <div class="container">
     <button class="add-btn" onclick="openModal()">+ Add Trip</button>
-
+    <button class="sheet-btn" onclick="window.open('https://docs.google.com/spreadsheets/d/1EueKK3XpbTyMbB6R5IN12V6_dnfoQcxarpA6g_I5urM/edit?gid=0#gid=0', '_blank')">
+    📄 Open Sheet
+</button>
        <table>
         <tr>
             <th>ID</th>

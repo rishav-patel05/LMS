@@ -1,5 +1,6 @@
 <?php
 include('db.php');
+include 'syncToGoogle2.php';
 
 // Handle new trip form submission
 if (isset($_POST['add_trip'])) {
@@ -26,7 +27,45 @@ if (isset($_POST['add_trip'])) {
     );
     $stmt->execute();
 
+    // ✅ Fix added: capture inserted ID
+    $inserted_id = $stmt->insert_id;
+
     echo "<script>alert('Trip added successfully!'); window.location='thirdparty_trip.php';</script>";
+
+    $syncData = [
+        "action" => "add",
+        "id" => $inserted_id,
+        "invoice_no" => $_POST['invoice_no'],
+        "lr_no" => $_POST['lr_no'],
+        "trip_date" => $_POST['trip_date'],
+        "vehicle_no" => $_POST['vehicle_no'],
+        "from_place" => $_POST['from_place'],
+        "to_place" => $_POST['to_place'],
+        "port_reach_time" => $_POST['port_reach_time'],
+        "start_time" => $_POST['start_time'],
+        "gate_reach_time" => $_POST['gate_reach_time'],
+        "customer_left_time" => $_POST['customer_left_time'],
+        "consignor" => $_POST['consignor'],
+        "consignee" => $_POST['consignee'],
+        "commission_receiver" => $_POST['commission_receiver'],
+        "biller_name" => $_POST['biller_name'],
+        "transporter_name" => $_POST['transporter_name'],
+        "transporter_mob" => $_POST['transporter_mob'],
+        "truck_driver_name" => $_POST['truck_driver_name'],
+        "truck_driver_mob" => $_POST['truck_driver_mob'],
+        "product_name" => $_POST['product_name'],
+        "loading_weight" => $_POST['loading_weight'],
+        "unloading_weight" => $_POST['unloading_weight'],
+        "short_weight" => $_POST['short_weight'],
+        "transport_rate" => $_POST['transport_rate'],
+        "total_charges" => $_POST['total_charges'],
+        "advance" => $_POST['advance'],
+        "commission" => $_POST['commission'],
+        "net_payable" => $_POST['net_payable'],
+        "payment_voucher_no" => $_POST['payment_voucher_no'],
+        "trip_complete" => $trip_complete
+    ];
+    syncToGoogleSheet($syncData);
 }
 
 // Handle update trip
@@ -68,6 +107,42 @@ if (isset($_POST['update_trip'])) {
 
     $conn->query($sql);
     echo "<script>alert('Trip updated successfully!'); window.location='thirdparty_trip.php';</script>";
+
+    $syncData = [
+        "action" => "update",
+        // ✅ Fix added: use correct id
+        "id" => $_POST['trip_id'],
+        "invoice_no" => $_POST['invoice_no'],
+        "lr_no" => $_POST['lr_no'],
+        "trip_date" => $_POST['trip_date'],
+        "vehicle_no" => $_POST['vehicle_no'],
+        "from_place" => $_POST['from_place'],
+        "to_place" => $_POST['to_place'],
+        "port_reach_time" => $_POST['port_reach_time'],
+        "start_time" => $_POST['start_time'],
+        "gate_reach_time" => $_POST['gate_reach_time'],
+        "customer_left_time" => $_POST['customer_left_time'],
+        "consignor" => $_POST['consignor'],
+        "consignee" => $_POST['consignee'],
+        "commission_receiver" => $_POST['commission_receiver'],
+        "biller_name" => $_POST['biller_name'],
+        "transporter_name" => $_POST['transporter_name'],
+        "transporter_mob" => $_POST['transporter_mob'],
+        "truck_driver_name" => $_POST['truck_driver_name'],
+        "truck_driver_mob" => $_POST['truck_driver_mob'],
+        "product_name" => $_POST['product_name'],
+        "loading_weight" => $_POST['loading_weight'],
+        "unloading_weight" => $_POST['unloading_weight'],
+        "short_weight" => $_POST['short_weight'],
+        "transport_rate" => $_POST['transport_rate'],
+        "total_charges" => $_POST['total_charges'],
+        "advance" => $_POST['advance'],
+        "commission" => $_POST['commission'],
+        "net_payable" => $_POST['net_payable'],
+        "payment_voucher_no" => $_POST['payment_voucher_no'],
+        "trip_complete" => $trip_complete
+    ];
+    syncToGoogleSheet($syncData);
 }
 
 // Handle delete
@@ -80,6 +155,7 @@ if (isset($_GET['delete'])) {
 // Fetch records
 $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -209,6 +285,20 @@ $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
             padding: 8px 15px;
             border-radius: 5px;
         }
+         .sheet-btn {
+    background: #28a745;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+}
+.sheet-btn:hover {
+    background: #1e7e34;
+}
+
   </style>
 </head>
 <body>
@@ -222,6 +312,10 @@ $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
     </div>
 </header>
     <button id="openModal">+ Add Trip</button>
+     <button class="sheet-btn" onclick="window.open('https://docs.google.com/spreadsheets/d/1EueKK3XpbTyMbB6R5IN12V6_dnfoQcxarpA6g_I5urM/edit?gid=942277814#gid=942277814', '_blank')">
+      📄 Open Sheet
+     </button>
+    </form>
   </div>
 
   <div class="table-container">
@@ -351,7 +445,6 @@ $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
       </div>
 
       <button type="submit" name="add_trip">Add Trip</button>
-    </form>
   </div>
 </div>
 
