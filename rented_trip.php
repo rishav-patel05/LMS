@@ -287,6 +287,7 @@ $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
 }
 
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
 
@@ -356,14 +357,26 @@ $rowColor = $completed ? '#d4edda' : '#fff3cd';
     <td><?= $row['unloading_weight'] ?></td>
     <td><?= $row['short_weight'] ?></td>
     <td><?= $row['product_name'] ?></td>
-   <td>
-    <a href="#" 
-   class="edit-btn" 
-   style="padding:5px 10px;text-decoration:none;"
-   onclick='openEditModal(<?= json_encode($row) ?>)'>Edit</a>
+   <td style="text-align: center;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+        <!-- Edit Button -->
+        <button 
+            onclick='openEditModal(<?= json_encode($row) ?>)' 
+            title="Edit Trip"
+            style="background: #e7f5ff; border: none; color: #007bff; padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+            <i class="fa-solid fa-pen-to-square"></i>
+        </button>
 
-    <a href="?delete=<?= $row['id'] ?>" class="action-btn" onclick="return confirm('Delete this trip?')">Delete</a>
+        <!-- Delete Button -->
+        <button 
+            onclick="if(confirm('Delete this trip?')) window.location.href='?delete=<?= $row['id'] ?>';" 
+            title="Delete Trip"
+            style="background: #ffeef0; border: none; color: #dc3545; padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    </div>
 </td>
+
 
 </tr>
 <?php } ?>

@@ -176,15 +176,44 @@ $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     padding-bottom: 20px;
   }
-  .header-bar {
-    background: #904ee1ff;
-    color: white;
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 12px 12px 0 0;
-  }
+.header-bar {
+  background: #904ee1ff;
+  color: white;
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 12px 12px 0 0;
+}
+
+.header-bar h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+}
+
+.back-btn {
+  background: #ff4757;
+  color: white;
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.back-btn:hover {
+  background: #e63946;
+}
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
   button {
     background: #ff8000ff;
     color: white;
@@ -285,6 +314,20 @@ $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
             padding: 8px 15px;
             border-radius: 5px;
         }
+       button, .sheet-btn {
+  background: #ff8000ff;
+  color: white;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+button:hover, .sheet-btn:hover {
+  opacity: 0.9;
+}
          .sheet-btn {
     background: #28a745;
     color: white;
@@ -300,23 +343,24 @@ $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
 }
 
   </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 </head>
 <body>
 
 <div class="container">
-  <div class="header-bar">
-    <header>
-    <h1>🚛 Third Party Vehicle Trips</h1>
-    <div>
-        <a href="dashboard.php">⬅ Back</a>
-    </div>
-</header>
+<div class="header-bar">
+  <a href="dashboard.php" class="back-btn">⬅ Back</a>
+  <h1>🚛 Third Party Vehicle Trips</h1>
+  <div class="header-buttons">
     <button id="openModal">+ Add Trip</button>
-     <button class="sheet-btn" onclick="window.open('https://docs.google.com/spreadsheets/d/1EueKK3XpbTyMbB6R5IN12V6_dnfoQcxarpA6g_I5urM/edit?gid=942277814#gid=942277814', '_blank')">
+    <button class="sheet-btn" onclick="window.open('https://docs.google.com/spreadsheets/d/1EueKK3XpbTyMbB6R5IN12V6_dnfoQcxarpA6g_I5urM/edit?gid=942277814#gid=942277814', '_blank')">
       📄 Open Sheet
-     </button>
-    </form>
+    </button>
   </div>
+</div>
+
+
 
   <div class="table-container">
     <table>
@@ -388,13 +432,26 @@ $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
     <td><?= $row['commission'] ?></td>
     <td><?= $row['net_payable'] ?></td>
     <td><?= $row['payment_voucher_no'] ?></td>
-    <td>
-      <a href="javascript:void(0)" 
-         onclick='openEditModal(<?= json_encode($row) ?>)' 
-         class="edit-btn" 
-         style="padding:5px 10px;text-decoration:none;">Edit</a>
-      <a href="?delete=<?= $row['id'] ?>" class="action-btn" onclick="return confirm('Delete this trip?')">Delete</a>
-    </td>
+    <td style="text-align: center;">
+  <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+    <!-- Edit Button -->
+    <button 
+      onclick='openEditModal(<?= json_encode($row) ?>)' 
+      title="Edit Trip"
+      style="background: #e8f0fe; border: none; color: #007bff; padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+      <i class="fa-solid fa-pen-to-square"></i>
+    </button>
+
+    <!-- Delete Button -->
+    <button 
+      onclick="if(confirm('Delete this trip?')) window.location.href='?delete=<?= $row['id'] ?>';" 
+      title="Delete Trip"
+      style="background: #ffecec; border: none; color: #dc3545; padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+      <i class="fa-solid fa-trash"></i>
+    </button>
+  </div>
+</td>
+
   </tr>
 <?php endwhile; ?>
 </table>
