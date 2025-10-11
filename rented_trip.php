@@ -10,7 +10,8 @@ if (!isset($_SESSION['username'])) {
 
 // ✅ ADD TRIP
 if (isset($_POST['add_trip'])) {
-    $trip_complete = isset($_POST['trip_complete']) ? 1 : 0;
+    $trip_complete = isset($_POST['trip_complete']) ? 'Yes' : 'No';
+
 
     $sql = "INSERT INTO rented_trips 
         (invoice_no, lr_no, trip_date, vehicle_no, from_place, to_place, port_reach_time, start_time, company_gate_reach, company_left_time, consignor, consignee, truck_owner_name, owner_number, truck_driver_name, truck_driver_mob, loading_weight, unloading_weight, short_weight, product_name, trip_complete)
@@ -75,7 +76,8 @@ if (isset($_POST['add_trip'])) {
 
 // ✅ UPDATE TRIP
 if (isset($_POST['update_trip'])) {
-    $trip_complete = isset($_POST['trip_complete']) ? 1 : 0;
+    $trip_complete = isset($_POST['trip_complete']) ? 'Yes' : 'No';
+
     $id = $_POST['id'];
 
     $sql = "UPDATE rented_trips SET
@@ -148,7 +150,10 @@ if (isset($_GET['delete'])) {
 // ✅ TOGGLE completion
 if (isset($_GET['toggle'])) {
     $id = $_GET['toggle'];
-    $conn->query("UPDATE rented_trips SET trip_complete = 1 - trip_complete WHERE id=$id");
+   $conn->query("UPDATE rented_trips 
+              SET trip_complete = CASE WHEN trip_complete='Yes' THEN 'No' ELSE 'Yes' END 
+              WHERE id=$id");
+
 
     // Get latest row to sync update
     $row = $conn->query("SELECT * FROM rented_trips WHERE id=$id")->fetch_assoc();
@@ -285,7 +290,34 @@ $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
 .sheet-btn:hover {
     background: #1e7e34;
 }
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
 
+.time-input {
+  width: 100%;
+  background-color: #fff;
+  position: relative;
+  z-index: 2;
+}
+
+.time-input::before {
+  content: attr(placeholder);
+  position: absolute;
+  color: #999;
+  pointer-events: none;
+  left: 14px;
+  top: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  z-index: 1;
+}
+
+.time-input:focus::before,
+.time-input.filled::before {
+  content: "";
+}
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -331,10 +363,12 @@ $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
 
 <?php while ($row = $result->fetch_assoc()) {
     // safe check: handles missing array key without warning
-$completed = !empty($row['trip_complete']) && $row['trip_complete'] == 1;
-$rowColor = $completed ? '#d4edda' : '#fff3cd';
+$completed = ($row['trip_complete'] === 'Yes');
+
+$rowColor = ($row['trip_complete'] === 'Yes') ? '#d4edda' : '#fff3cd';
 
 ?>
+
 <tr style="background-color: <?= $rowColor ?>;">
     <td><?= $row['id'] ?></td>
     <td><?= $row['invoice_no'] ?></td>
@@ -399,10 +433,18 @@ $rowColor = $completed ? '#d4edda' : '#fff3cd';
             <input type="text" name="vehicle_no" placeholder="Vehicle No" required>
             <input type="text" name="from_place" placeholder="From" required>
             <input type="text" name="to_place" placeholder="To" required>
-            <input type="time" name="port_reach_time" placeholder="Port Reach Time">
-            <input type="time" name="start_time" placeholder="Start Time">
-            <input type="time" name="company_gate_reach" placeholder="Gate Reach Time">
-            <input type="time" name="company_left_time" placeholder="Left Time">
+  <div class="input-wrapper">
+    <input type="time" name="port_reach_time" class="time-input" placeholder="Port Reach Time">
+  </div>
+  <div class="input-wrapper">
+    <input type="time" name="start_time" class="time-input" placeholder="Start Time">
+  </div>
+  <div class="input-wrapper">
+    <input type="time" name="company_gate_reach" class="time-input" placeholder="Gate Reach Time">
+  </div>
+  <div class="input-wrapper">
+    <input type="time" name="company_left_time" class="time-input" placeholder="Left Time">
+  </div>
             <input type="text" name="consignor" placeholder="Consignor">
             <input type="text" name="consignee" placeholder="Consignee">
             <input type="text" name="truck_owner_name" placeholder="Truck Owner Name">
@@ -476,7 +518,12 @@ function closeModal() {
     document.getElementById('tripModal').style.display = 'none';
 }
 
-
+document.querySelectorAll('.time-input').forEach(input => {
+  input.addEventListener('input', () => {
+    if (input.value) input.classList.add('filled');
+    else input.classList.remove('filled');
+  });
+});
 </script>
 
 </body>

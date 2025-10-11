@@ -4,7 +4,8 @@ include 'syncToGoogle2.php';
 
 // Handle new trip form submission
 if (isset($_POST['add_trip'])) {
-    $trip_complete = isset($_POST['trip_complete']) ? 1 : 0;
+    $trip_complete = isset($_POST['trip_complete']) ? 'Yes' : 'No';
+
 
     $sql = "INSERT INTO thirdparty_trips (
         invoice_no, lr_no, trip_date, vehicle_no, from_place, to_place, port_reach_time, start_time,
@@ -70,7 +71,8 @@ if (isset($_POST['add_trip'])) {
 
 // Handle update trip
 if (isset($_POST['update_trip'])) {
-    $trip_complete = isset($_POST['trip_complete']) ? 1 : 0;
+    $trip_complete = isset($_POST['trip_complete']) ? 'Yes' : 'No';
+
     $id = $_POST['trip_id'];
 
     $sql = "UPDATE thirdparty_trips SET
@@ -342,6 +344,25 @@ button:hover, .sheet-btn:hover {
     background: #1e7e34;
 }
 
+.time-input::before {
+  content: attr(placeholder);
+  position: absolute;
+  color: #999;
+  pointer-events: none;
+  left: 12px;
+  top: 8px;
+  font-family: inherit;
+}
+
+.time-input:focus::before,
+.time-input.filled::before {
+  content: "";
+}
+.input-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -399,8 +420,9 @@ button:hover, .sheet-btn:hover {
 
 <?php while($row = $result->fetch_assoc()): ?>
   <?php 
-    $trip_complete = isset($row['trip_complete']) ? $row['trip_complete'] : 0;
-    $rowColor = ($trip_complete == 1) ? '#C8E6C9' : '#FFE0B2'; // ✅ Green / Orange
+    $trip_complete = isset($row['trip_complete']) ? $row['trip_complete'] : 'No';
+    $rowColor = ($trip_complete == 'Yes') ? '#C8E6C9' : '#FFE0B2';
+
   ?>
   <tr style="background-color: <?= $rowColor ?>;">
     <td><?= $row['id'] ?></td>
@@ -472,10 +494,18 @@ button:hover, .sheet-btn:hover {
         <input type="text" name="vehicle_no" placeholder="Vehicle No" required>
         <input type="text" name="from_place" placeholder="From Place" required>
         <input type="text" name="to_place" placeholder="To Place" required>
-        <input type="time" name="port_reach_time">
-        <input type="time" name="start_time">
-        <input type="time" name="gate_reach_time">
-        <input type="time" name="customer_left_time">
+   <div class="input-wrapper">
+      <input type="time" name="port_reach_time" class="time-input" placeholder="Port Reach Time">
+    </div>
+    <div class="input-wrapper">
+      <input type="time" name="start_time" class="time-input" placeholder="Start Time">
+    </div>
+    <div class="input-wrapper">
+      <input type="time" name="gate_reach_time" class="time-input" placeholder="Gate Reach Time">
+    </div>
+    <div class="input-wrapper">
+      <input type="time" name="customer_left_time" class="time-input" placeholder="Customer Left Time">
+    </div>
         <input type="text" name="consignor" placeholder="Consignor">
         <input type="text" name="consignee" placeholder="Consignee">
         <input type="text" name="commission_receiver" placeholder="Commission Receiver">
@@ -555,6 +585,15 @@ button:hover, .sheet-btn:hover {
     btn.name = 'update_trip';
     btn.innerText = 'Update Trip';
   }
+  document.querySelectorAll('.time-input').forEach(input => {
+  input.addEventListener('input', () => {
+    if (input.value) {
+      input.classList.add('filled');
+    } else {
+      input.classList.remove('filled');
+    }
+  });
+});
 </script>
 
 </body>
