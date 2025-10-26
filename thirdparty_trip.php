@@ -2,6 +2,26 @@
 include('db.php');
 include 'syncToGoogle2.php';
 
+$type = $_GET['type'] ?? '';
+
+if ($type === 'clients') {
+    $query = $conn->query("SELECT DISTINCT name FROM clients ORDER BY name ASC");
+    $data = [];
+    while ($row = $query->fetch_assoc()) {
+        $data[] = $row['name'];
+    }
+    echo json_encode($data);
+}
+if ($type === 'locations') {
+    $query = $conn->query("SELECT DISTINCT name FROM locations ORDER BY name ASC");
+    $data = [];
+    while ($row = $query->fetch_assoc()) {
+        $data[] = $row['name'];
+    }
+    echo json_encode($data);
+}
+
+
 // Handle new trip form submission
 if (isset($_POST['add_trip'])) {
     $trip_complete = isset($_POST['trip_complete']) ? 'Yes' : 'No';
@@ -156,6 +176,10 @@ if (isset($_GET['delete'])) {
 
 // Fetch records
 $result = $conn->query("SELECT * FROM thirdparty_trips ORDER BY id DESC");
+
+$locations = $conn->query("SELECT name FROM locations ORDER BY name ASC");
+$clients = $conn->query("SELECT name FROM clients ORDER BY name ASC");
+
 ?>
 
 
@@ -362,6 +386,20 @@ button:hover, .sheet-btn:hover {
   position: relative;
   display: inline-block;
 }
+select {
+  width: 100%;
+  padding: 8px;
+  margin: 6px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  background-color: #fff;
+}
+select:focus {
+  border-color: #007bff;
+  outline: none;
+}
 
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -378,6 +416,9 @@ button:hover, .sheet-btn:hover {
     <button class="sheet-btn" onclick="window.open('https://docs.google.com/spreadsheets/d/1EueKK3XpbTyMbB6R5IN12V6_dnfoQcxarpA6g_I5urM/edit?gid=942277814#gid=942277814', '_blank')">
       📄 Open Sheet
     </button>
+    <button class="sheet-btn" onclick="window.location.href='manage_data.php'">
+🧾 Manage Clients & Locations
+</button>
   </div>
 </div>
 
@@ -492,8 +533,23 @@ button:hover, .sheet-btn:hover {
         <input type="text" name="lr_no" placeholder="LR No" required>
         <input type="date" name="trip_date" required>
         <input type="text" name="vehicle_no" placeholder="Vehicle No" required>
-        <input type="text" name="from_place" placeholder="From Place" required>
-        <input type="text" name="to_place" placeholder="To Place" required>
+        <select name="from_place" required>
+  <option value="">Select From</option>
+  <?php while ($row = $locations->fetch_assoc()) { ?>
+    <option value="<?= htmlspecialchars($row['name']) ?>"><?= htmlspecialchars($row['name']) ?></option>
+  <?php } ?>
+</select>
+
+
+<select name="to_place" required>
+  <option value="">Select To</option>
+  <?php
+  // fetch again because previous loop exhausts results
+  $locations = $conn->query("SELECT name FROM locations ORDER BY name ASC");
+  while ($row = $locations->fetch_assoc()) { ?>
+    <option value="<?= htmlspecialchars($row['name']) ?>"><?= htmlspecialchars($row['name']) ?></option>
+  <?php } ?>
+</select>
    <div class="input-wrapper">
       <input type="time" name="port_reach_time" class="time-input" placeholder="Port Reach Time">
     </div>
@@ -506,8 +562,23 @@ button:hover, .sheet-btn:hover {
     <div class="input-wrapper">
       <input type="time" name="customer_left_time" class="time-input" placeholder="Customer Left Time">
     </div>
-        <input type="text" name="consignor" placeholder="Consignor">
-        <input type="text" name="consignee" placeholder="Consignee">
+       <select name="consignor">
+  <option value="">Select Consignor</option>
+  <?php
+  $clients = $conn->query("SELECT name FROM clients ORDER BY name ASC");
+  while ($row = $clients->fetch_assoc()) { ?>
+    <option value="<?= htmlspecialchars($row['name']) ?>"><?= htmlspecialchars($row['name']) ?></option>
+  <?php } ?>
+</select>
+
+<select name="consignee">
+  <option value="">Select Consignee</option>
+  <?php
+  $clients = $conn->query("SELECT name FROM clients ORDER BY name ASC");
+  while ($row = $clients->fetch_assoc()) { ?>
+    <option value="<?= htmlspecialchars($row['name']) ?>"><?= htmlspecialchars($row['name']) ?></option>
+  <?php } ?>
+</select>
         <input type="text" name="commission_receiver" placeholder="Commission Receiver">
         <input type="text" name="biller_name" placeholder="Biller Name">
         <input type="text" name="transporter_name" placeholder="Transporter Name">
@@ -594,6 +665,42 @@ button:hover, .sheet-btn:hover {
     }
   });
 });
+
+ocument.addEventListener("DOMContentLoaded", function() {
+  loadDropdown('clients', 'consignorInput', 'consignorList');
+  loadDropdown('clients', 'consigneeInput', 'consigneeList');
+});
+
+function loadDropdown(type, inputId, listId) {
+  fetch(`get_clients.php?type=${type}`)
+    .then(res => res.json())
+    .then(data => {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+
+      input.addEventListener("input", () => {
+        const val = input.value.toLowerCase();
+        list.innerHTML = "";
+
+        const filtered = data.filter(name => name.toLowerCase().includes(val));
+        filtered.forEach(name => {
+          const div = document.createElement("div");
+          div.textContent = name;
+          div.onclick = () => {
+            input.value = name;
+            list.style.display = "none";
+          };
+          list.appendChild(div);
+        });
+
+        list.style.display = filtered.length ? "block" : "none";
+      });
+
+      input.addEventListener("focus", () => list.style.display = "block");
+      input.addEventListener("blur", () => setTimeout(() => list.style.display = "none", 200));
+    })
+    .catch(err => console.error("Error loading dropdown:", err));
+}
 </script>
 
 </body>

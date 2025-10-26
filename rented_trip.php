@@ -8,6 +8,25 @@ if (!isset($_SESSION['username'])) {
     exit();
 }
 
+$type = $_GET['type'] ?? '';
+
+if ($type === 'clients') {
+    $query = $conn->query("SELECT DISTINCT name FROM clients ORDER BY name ASC");
+    $data = [];
+    while ($row = $query->fetch_assoc()) {
+        $data[] = $row['name'];
+    }
+    echo json_encode($data);
+}
+if ($type === 'locations') {
+    $query = $conn->query("SELECT DISTINCT name FROM locations ORDER BY name ASC");
+    $data = [];
+    while ($row = $query->fetch_assoc()) {
+        $data[] = $row['name'];
+    }
+    echo json_encode($data);
+}
+
 // ✅ ADD TRIP
 if (isset($_POST['add_trip'])) {
     $trip_complete = isset($_POST['trip_complete']) ? 'Yes' : 'No';
@@ -138,6 +157,19 @@ if (isset($_POST['update_trip'])) {
     exit();
 }
 
+// After INSERT or UPDATE query for trip
+if (!empty($_POST['from_place']) && !empty($_POST['to_place'])) {
+    $from = $conn->real_escape_string($_POST['from_place']);
+    $to = $conn->real_escape_string($_POST['to_place']);
+    $conn->query("INSERT IGNORE INTO locations (name) VALUES ('$from'), ('$to')");
+}
+
+if (!empty($_POST['consignor']) && !empty($_POST['consignee'])) {
+    $consignor = $conn->real_escape_string($_POST['consignor']);
+    $consignee = $conn->real_escape_string($_POST['consignee']);
+    $conn->query("INSERT IGNORE INTO clients (name) VALUES ('$consignor'), ('$consignee')");
+}
+
 // ✅ DELETE
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
@@ -166,6 +198,10 @@ if (isset($_GET['toggle'])) {
 
 // ✅ Fetch records
 $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
+// Fetch dropdown data
+$locations = $conn->query("SELECT name FROM locations ORDER BY name ASC");
+$clients = $conn->query("SELECT name FROM clients ORDER BY name ASC");
+
 ?>
 
 
@@ -318,6 +354,80 @@ $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
 .time-input.filled::before {
   content: "";
 }
+/* Fix datalist dropdown appearance */
+input[list] {
+  appearance: textfield;
+  -webkit-appearance: textfield;
+  background-color: #fff;
+  color: #000;
+  padding-right: 8px;
+  cursor: text;
+}
+
+input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0;
+}
+
+datalist option {
+  background: #fff;
+  color: #000;
+}
+.dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.dropdown-wrapper input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.dropdown-list {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.dropdown-list div {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.dropdown-list div:hover {
+  background: #007bff;
+  color: white;
+}
+select {
+  width: 100%;
+  padding: 8px;
+  margin: 6px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  background-color: #fff;
+}
+select:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -329,6 +439,9 @@ $result = $conn->query("SELECT * FROM rented_trips ORDER BY id DESC");
         <a href="dashboard.php">⬅ Back</a>
     </div>
 </header>
+<button class="sheet-btn" onclick="window.location.href='manage_data.php'">
+🧾 Manage Clients & Locations
+</button>
 
 <div class="container">
     <button class="add-btn" onclick="openModal()">+ Add Trip</button>
@@ -431,8 +544,26 @@ $rowColor = ($row['trip_complete'] === 'Yes') ? '#d4edda' : '#fff3cd';
             <input type="text" name="lr_no" placeholder="LR No" required>
             <input type="date" name="trip_date" required>
             <input type="text" name="vehicle_no" placeholder="Vehicle No" required>
-            <input type="text" name="from_place" placeholder="From" required>
-            <input type="text" name="to_place" placeholder="To" required>
+            <!-- From -->
+
+<select name="from_place" required>
+  <option value="">Select From</option>
+  <?php while ($row = $locations->fetch_assoc()) { ?>
+    <option value="<?= htmlspecialchars($row['name']) ?>"><?= htmlspecialchars($row['name']) ?></option>
+  <?php } ?>
+</select>
+
+
+<select name="to_place" required>
+  <option value="">Select To</option>
+  <?php
+  // fetch again because previous loop exhausts results
+  $locations = $conn->query("SELECT name FROM locations ORDER BY name ASC");
+  while ($row = $locations->fetch_assoc()) { ?>
+    <option value="<?= htmlspecialchars($row['name']) ?>"><?= htmlspecialchars($row['name']) ?></option>
+  <?php } ?>
+</select>
+
   <div class="input-wrapper">
     <input type="time" name="port_reach_time" class="time-input" placeholder="Port Reach Time">
   </div>
@@ -445,8 +576,24 @@ $rowColor = ($row['trip_complete'] === 'Yes') ? '#d4edda' : '#fff3cd';
   <div class="input-wrapper">
     <input type="time" name="company_left_time" class="time-input" placeholder="Left Time">
   </div>
-            <input type="text" name="consignor" placeholder="Consignor">
-            <input type="text" name="consignee" placeholder="Consignee">
+<select name="consignor">
+  <option value="">Select Consignor</option>
+  <?php
+  $clients = $conn->query("SELECT name FROM clients ORDER BY name ASC");
+  while ($row = $clients->fetch_assoc()) { ?>
+    <option value="<?= htmlspecialchars($row['name']) ?>"><?= htmlspecialchars($row['name']) ?></option>
+  <?php } ?>
+</select>
+
+<select name="consignee">
+  <option value="">Select Consignee</option>
+  <?php
+  $clients = $conn->query("SELECT name FROM clients ORDER BY name ASC");
+  while ($row = $clients->fetch_assoc()) { ?>
+    <option value="<?= htmlspecialchars($row['name']) ?>"><?= htmlspecialchars($row['name']) ?></option>
+  <?php } ?>
+</select>
+
             <input type="text" name="truck_owner_name" placeholder="Truck Owner Name">
             <input type="text" name="owner_number" placeholder="Owner Number">
             <input type="text" name="truck_driver_name" placeholder="Truck Driver Name">
@@ -524,6 +671,43 @@ document.querySelectorAll('.time-input').forEach(input => {
     else input.classList.remove('filled');
   });
 });
+
+document.addEventListener("DOMContentLoaded", function() {
+  loadDropdown('clients', 'consignorInput', 'consignorList');
+  loadDropdown('clients', 'consigneeInput', 'consigneeList');
+});
+
+function loadDropdown(type, inputId, listId) {
+  fetch(`get_clients.php?type=${type}`)
+    .then(res => res.json())
+    .then(data => {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+
+      input.addEventListener("input", () => {
+        const val = input.value.toLowerCase();
+        list.innerHTML = "";
+
+        const filtered = data.filter(name => name.toLowerCase().includes(val));
+        filtered.forEach(name => {
+          const div = document.createElement("div");
+          div.textContent = name;
+          div.onclick = () => {
+            input.value = name;
+            list.style.display = "none";
+          };
+          list.appendChild(div);
+        });
+
+        list.style.display = filtered.length ? "block" : "none";
+      });
+
+      input.addEventListener("focus", () => list.style.display = "block");
+      input.addEventListener("blur", () => setTimeout(() => list.style.display = "none", 200));
+    })
+    .catch(err => console.error("Error loading dropdown:", err));
+}
+
 </script>
 
 </body>
