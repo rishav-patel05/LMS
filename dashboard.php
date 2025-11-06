@@ -5,7 +5,7 @@ header("Pragma: no-cache");
 header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
 session_start();
 if (!isset($_SESSION['username'])) {
-    header("Location: login.php");
+    header("Location: index.php");
     exit();
 }
 ?>
